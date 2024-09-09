@@ -1,0 +1,8 @@
+1. Install relevant libraries:
+    1. requests: for making HTTP requests
+    2. BeautifulSoup: For web scraping
+    3. yfinance: to fetch stock data
+    4. smtplib: to send emails
+    5. schedule: For scheduling the script to run periodically
+
+2. cd
