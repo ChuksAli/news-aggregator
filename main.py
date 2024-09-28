@@ -10,42 +10,46 @@ import os
 def job():
     # Function to get news
     def get_news_stocks(url):
-        response = requests.get(url)
-        soup = BeautifulSoup(response.text, 'html.parser')
-        
-        # Update this selector if necessary to correctly extract headlines and links
-        headlines = soup.find_all('a', class_='Card-title')
-        
-        news_items = []
-        for headline in headlines:
-            link = headline.get('href')
-            text = headline.get_text()
-            if not link.startswith('http'):
-                # Make sure the link is complete
-                link = url + link
-            news_items.append((text, link))
-        
-        return news_items
-
-    def get_news_crypto(url):
-        response = requests.get(url)
-        soup = BeautifulSoup(response.text, 'html.parser')
-        
-        # Update this selector if necessary to correctly extract headlines and links
-        headlines = soup.find_all(lambda tag: (tag.name == 'h6' or tag.name == 'h3'))
-    
-        news_items = []
-        for headline in headlines:
-            a_tag = headline.find('a')
-            if a_tag:
-                link = a_tag.get('href')
-                text = a_tag.get_text()
+        try:
+            response = requests.get(url)
+            soup = BeautifulSoup(response.text, 'html.parser')
+            
+            headlines = soup.find_all('a', class_='Card-title')
+            
+            news_items = []
+            for headline in headlines:
+                link = headline.get('href')
+                text = headline.get_text()
                 if not link.startswith('http'):
-                    # Make sure the link is complete
                     link = url + link
                 news_items.append((text, link))
+            
+            return news_items
+        except Exception as e:
+            print(f"Error fetching stock news: {e}")
+            return []
+
+    def get_news_crypto(url):
+        try:
+            response = requests.get(url)
+            soup = BeautifulSoup(response.text, 'html.parser')
+            
+            headlines = soup.find_all(lambda tag: (tag.name == 'h6' or tag.name == 'h3'))
         
-        return news_items
+            news_items = []
+            for headline in headlines:
+                a_tag = headline.find('a')
+                if a_tag:
+                    link = a_tag.get('href')
+                    text = a_tag.get_text()
+                    if not link.startswith('http'):
+                        link = url + link
+                    news_items.append((text, link))
+            
+            return news_items
+        except Exception as e:
+            print(f"Error fetching crypto news: {e}")
+            return []
 
     # Get news
     crypto_news = get_news_crypto('https://www.coindesk.com/')
@@ -58,29 +62,31 @@ def job():
             if 'regularMarketPrice' in stock.info:
                 return stock.info['regularMarketPrice']
             else:
-                return "Price data not available"  # Return a default message if the key is missing
+                return "Price data not available"
         except KeyError:
-            return "Error retrieving price"  # Return a message if an error occurs
+            return "Error retrieving price"
         except Exception as e:
-            return f"An error occurred: {e}"  # Handle any other exceptions
+            return f"An error occurred: {e}"
 
     # Stock prices dictionary
     stock_prices = {
-        'AAPL': get_stock_price('AAPL'),  # Apple Inc. stock price
-        # Add more stocks if needed
+        'AAPL': get_stock_price('AAPL'),
         'COIN': get_stock_price('COIN'),
     }
 
     # Function to get crypto price
     def get_crypto_price(coin_id):
-        url = f'https://api.coingecko.com/api/v3/simple/price?ids={coin_id}&vs_currencies=usd'
-        response = requests.get(url).json()
-        return response[coin_id]['usd']
+        try:
+            url = f'https://api.coingecko.com/api/v3/simple/price?ids={coin_id}&vs_currencies=usd'
+            response = requests.get(url).json()
+            return response[coin_id]['usd']
+        except Exception as e:
+            print(f"Error fetching crypto price: {e}")
+            return "Price data not available"
 
     # Crypto prices dictionary
     crypto_prices = {
-        'bitcoin': get_crypto_price('bitcoin'),  # Bitcoin price in USD
-        # Add more cryptocurrencies if needed
+        'bitcoin': get_crypto_price('bitcoin'),
     }
 
     # Function to create email content
@@ -110,28 +116,30 @@ def job():
 
     # Function to send the email
     def send_email(subject, content, to_email):
-        msg = MIMEText(content)
-        msg['Subject'] = subject
-        msg['From'] = 'chuksalichukwu1234@gmail.com'
-        msg['To'] = to_email
+    # Encode email content in UTF-8
+    msg = MIMEText(content, 'plain', 'utf-8')
+    msg['Subject'] = subject
+    msg['From'] = 'your_email@gmail.com'
+    msg['To'] = to_email
 
-        # Use environment variables for credentials
-        email_user = os.getenv('EMAIL_USER')
-        email_pass = os.getenv('EMAIL_PASS')
+    email_user = os.getenv('EMAIL_USER')
+    email_pass = os.getenv('EMAIL_PASS')
 
+    try:
         with smtplib.SMTP_SSL('smtp.gmail.com', 465) as server:
             server.login(email_user, email_pass)
             server.sendmail(email_user, to_email, msg.as_string())
+        print("Email sent successfully!")
+    except Exception as e:
+        print(f"Failed to send email: {e}")
 
     # Send the email
-    send_email("Daily Stock and Crypto Update", email_content, "chuksalichukwu1234@gmail.com")
+    send_email("Daily Stock and Crypto Update", email_content, "your_email@gmail.com")
 
-# Schedule the job
-#schedule.every().day.at("14:23").do(job)
+# Schedule the job to run daily at 9:30 AM
+schedule.every().day.at("09:45").do(job)
 
-# Keep the script running
-#while True:
-    #schedule.run_pending()
-    #time.sleep(1)
-
-job()
+# Keep the script running to check the schedule
+while True:
+    schedule.run_pending()
+    time.sleep(1)
